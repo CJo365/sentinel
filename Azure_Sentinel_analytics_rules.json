@@ -1,0 +1,872 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "workspace": {
+            "type": "String"
+        }
+    },
+    "resources": [
+        {
+            "id": "[concat(resourceId('Microsoft.OperationalInsights/workspaces/providers', parameters('workspace'), 'Microsoft.SecurityInsights'),'/alertRules/2eb5ae54-6992-459a-8398-9119fd86835d')]",
+            "name": "[concat(parameters('workspace'),'/Microsoft.SecurityInsights/2eb5ae54-6992-459a-8398-9119fd86835d')]",
+            "type": "Microsoft.OperationalInsights/workspaces/providers/alertRules",
+            "kind": "Scheduled",
+            "apiVersion": "2022-09-01-preview",
+            "properties": {
+                "displayName": "Addition of a Temporary Access Pass to a Privileged Account",
+                "description": "'Detects when a Temporary Access Pass (TAP) is created for a Privileged Account.\n  A Temporary Access Pass is a time-limited passcode issued by an admin that satisfies strong authentication requirements and can be used to onboard other authentication methods, including Passwordless ones such as Microsoft Authenticator or even Windows Hello.\n  A threat actor could use a TAP to register a new authentication method to maintain persistance to an account.\n  Review any TAP creations to ensure they were used legitimately.\n  Ref: https://docs.microsoft.com/azure/active-directory/fundamentals/security-operations-privileged-accounts#changes-to-privileged-accounts'\n",
+                "severity": "High",
+                "enabled": true,
+                "query": "let admin_users = (IdentityInfo\n  | summarize arg_max(TimeGenerated, *) by AccountUPN\n  | where AssignedRoles contains \"admin\"\n  | summarize by tolower(AccountUPN));\n  AuditLogs\n  | where OperationName =~ \"Admin registered security info\"\n  | where ResultReason =~ \"Admin registered temporary access pass method for user\"\n  | extend userPrincipalName = tostring(TargetResources[0].userPrincipalName)\n  | where tolower(userPrincipalName) in (admin_users)\n",
+                "queryFrequency": "P1D",
+                "queryPeriod": "P1D",
+                "triggerOperator": "GreaterThan",
+                "triggerThreshold": 0,
+                "suppressionDuration": "PT1H",
+                "suppressionEnabled": false,
+                "tactics": [],
+                "techniques": [],
+                "alertRuleTemplateName": null,
+                "incidentConfiguration": {
+                    "createIncident": true,
+                    "groupingConfiguration": {
+                        "enabled": false,
+                        "reopenClosedIncident": false,
+                        "lookbackDuration": "PT5M",
+                        "matchingMethod": "AllEntities",
+                        "groupByEntities": [],
+                        "groupByAlertDetails": null,
+                        "groupByCustomDetails": null
+                    }
+                },
+                "eventGroupingSettings": null,
+                "alertDetailsOverride": null,
+                "customDetails": null,
+                "entityMappings": null,
+                "sentinelEntitiesMappings": null
+            }
+        },
+        {
+            "id": "[concat(resourceId('Microsoft.OperationalInsights/workspaces/providers', parameters('workspace'), 'Microsoft.SecurityInsights'),'/alertRules/86ccb1fd-7fdb-4c14-92c2-7d3101e8d760')]",
+            "name": "[concat(parameters('workspace'),'/Microsoft.SecurityInsights/86ccb1fd-7fdb-4c14-92c2-7d3101e8d760')]",
+            "type": "Microsoft.OperationalInsights/workspaces/providers/alertRules",
+            "kind": "Scheduled",
+            "apiVersion": "2022-09-01-preview",
+            "properties": {
+                "displayName": "Authentication Method Changed for Privileged Account",
+                "description": "'Identifies authentication methods being changed for a privileged account. This could be an indicated of an attacker adding an auth method to the account so they can have continued access.\nRef : https://docs.microsoft.com/azure/active-directory/fundamentals/security-operations-privileged-accounts#things-to-monitor-1'\n",
+                "severity": "High",
+                "enabled": true,
+                "query": "let VIPUsers = (IdentityInfo\n| where AssignedRoles contains \"Admin\"\n| summarize by tolower(AccountUPN));\nAuditLogs\n| where Category =~ \"UserManagement\"\n| where ActivityDisplayName =~ \"User registered security info\"\n| where LoggedByService =~ \"Authentication Methods\"\n| extend AccountCustomEntity = tostring(TargetResources[0].userPrincipalName), IPCustomEntity = tostring(parse_json(tostring(InitiatedBy.user)).ipAddress)\n| where AccountCustomEntity in (VIPUsers)\n",
+                "queryFrequency": "PT2H",
+                "queryPeriod": "PT2H",
+                "triggerOperator": "GreaterThan",
+                "triggerThreshold": 0,
+                "suppressionDuration": "PT1H",
+                "suppressionEnabled": false,
+                "tactics": [],
+                "techniques": [],
+                "alertRuleTemplateName": null,
+                "incidentConfiguration": {
+                    "createIncident": true,
+                    "groupingConfiguration": {
+                        "enabled": false,
+                        "reopenClosedIncident": false,
+                        "lookbackDuration": "PT5M",
+                        "matchingMethod": "AllEntities",
+                        "groupByEntities": [],
+                        "groupByAlertDetails": null,
+                        "groupByCustomDetails": null
+                    }
+                },
+                "eventGroupingSettings": null,
+                "alertDetailsOverride": null,
+                "customDetails": null,
+                "entityMappings": [
+                    {
+                        "entityType": "Account",
+                        "fieldMappings": [
+                            {
+                                "identifier": "FullName",
+                                "columnName": "AccountCustomEntity"
+                            }
+                        ]
+                    },
+                    {
+                        "entityType": "IP",
+                        "fieldMappings": [
+                            {
+                                "identifier": "Address",
+                                "columnName": "IPCustomEntity"
+                            }
+                        ]
+                    }
+                ],
+                "sentinelEntitiesMappings": null
+            }
+        },
+        {
+            "id": "[concat(resourceId('Microsoft.OperationalInsights/workspaces/providers', parameters('workspace'), 'Microsoft.SecurityInsights'),'/alertRules/131b5f87-0a6c-4114-9394-2a4b560f0fd1')]",
+            "name": "[concat(parameters('workspace'),'/Microsoft.SecurityInsights/131b5f87-0a6c-4114-9394-2a4b560f0fd1')]",
+            "type": "Microsoft.OperationalInsights/workspaces/providers/alertRules",
+            "kind": "Scheduled",
+            "apiVersion": "2022-09-01-preview",
+            "properties": {
+                "displayName": "Changes to PIM Settings",
+                "description": "'PIM provides a key mechanism for assigning privileges to accounts, this query detects changes to PIM role settings.\n  Monitor these changes to ensure they are being made legitimately and don't confer more privileges than expected or reduce the security of a PIM elevation.\n  Ref: https://docs.microsoft.com/azure/active-directory/fundamentals/security-operations-privileged-accounts#changes-to-privileged-accounts'\n",
+                "severity": "High",
+                "enabled": true,
+                "query": "AuditLogs\n  | where Category =~ \"RoleManagement\"\n  | where OperationName =~ \"Update role setting in PIM\"\n  | extend userPrincipalName = tostring(parse_json(tostring(InitiatedBy.user)).userPrincipalName)\n  | extend ipAddress = tostring(parse_json(tostring(InitiatedBy.user)).ipAddress)\n  | project-reorder TimeGenerated, OperationName, ResultReason, userPrincipalName, ipAddress\n",
+                "queryFrequency": "P1D",
+                "queryPeriod": "P1D",
+                "triggerOperator": "GreaterThan",
+                "triggerThreshold": 0,
+                "suppressionDuration": "PT1H",
+                "suppressionEnabled": false,
+                "tactics": [],
+                "techniques": [],
+                "alertRuleTemplateName": null,
+                "incidentConfiguration": {
+                    "createIncident": true,
+                    "groupingConfiguration": {
+                        "enabled": false,
+                        "reopenClosedIncident": false,
+                        "lookbackDuration": "PT5M",
+                        "matchingMethod": "AllEntities",
+                        "groupByEntities": [],
+                        "groupByAlertDetails": null,
+                        "groupByCustomDetails": null
+                    }
+                },
+                "eventGroupingSettings": null,
+                "alertDetailsOverride": null,
+                "customDetails": null,
+                "entityMappings": null,
+                "sentinelEntitiesMappings": null
+            }
+        },
+        {
+            "id": "[concat(resourceId('Microsoft.OperationalInsights/workspaces/providers', parameters('workspace'), 'Microsoft.SecurityInsights'),'/alertRules/c8193efd-06d7-4170-afdb-9ea065dd7dd1')]",
+            "name": "[concat(parameters('workspace'),'/Microsoft.SecurityInsights/c8193efd-06d7-4170-afdb-9ea065dd7dd1')]",
+            "type": "Microsoft.OperationalInsights/workspaces/providers/alertRules",
+            "kind": "Scheduled",
+            "apiVersion": "2022-09-01-preview",
+            "properties": {
+                "displayName": "URL Added to Application from Unknown Domain",
+                "description": "'Detects a URL being added to an application where the domain is not one that is associated with the tenant.\n  The query uses domains seen in sign in logs to determine if the domain is associated with the tenant.\n  Applications associated with URLs not controlled by the organization can pose a security risk.\n  Ref: https://docs.microsoft.com/azure/active-directory/fundamentals/security-operations-applications#application-configuration-changes'\n",
+                "severity": "High",
+                "enabled": true,
+                "query": "let domains =\n  SigninLogs\n  | where ResultType == 0\n  | extend domain = split(UserPrincipalName, \"@\")[1]\n  | extend domain = tostring(split(UserPrincipalName, \"@\")[1])\n  | summarize by tolower(tostring(domain));\n  AuditLogs\n  | where Category =~ \"ApplicationManagement\"\n  | where Result =~ \"success\"\n  | where OperationName =~ 'Update Application'\n  | mv-expand TargetResources\n  | mv-expand TargetResources.modifiedProperties\n  | where TargetResources_modifiedProperties.displayName =~ \"AppAddress\"\n  | extend Key = tostring(TargetResources_modifiedProperties.displayName)\n  | extend NewValue = TargetResources_modifiedProperties.newValue\n  | extend OldValue = TargetResources_modifiedProperties.oldValue\n  | where isnotempty(Key) and isnotempty(NewValue)\n  | project-reorder Key, NewValue, OldValue\n  | extend NewUrls = extract_all('\"Address\":([^,]*)', tostring(NewValue))\n  | extend OldUrls = extract_all('\"Address\":([^,]*)', tostring(OldValue))\n  | extend AddedUrls = set_difference(NewUrls, OldUrls)\n  | where array_length(AddedUrls) > 0\n  | extend UserAgent = iif(tostring(AdditionalDetails[0].key) == \"User-Agent\", tostring(AdditionalDetails[0].value), \"\")\n  | extend AddingUser = iif(isnotempty(tostring(parse_json(tostring(InitiatedBy.user)).userPrincipalName)) , tostring(parse_json(tostring(InitiatedBy.user)).userPrincipalName), \"\")\n  | extend AddingApp = iif(isnotempty(tostring(parse_json(tostring(InitiatedBy.app)).servicePrincipalName)) , tostring(parse_json(tostring(InitiatedBy.app)).servicePrincipalName), \"\")\n  | extend AddedBy = iif(isnotempty(AddingUser), AddingUser, AddingApp)\n  | project-away AddingApp, AddingUser\n  | extend AppDisplayName = tostring(TargetResources.displayName)\n  | extend ipAddress = tostring(parse_json(tostring(InitiatedBy.user)).ipAddress)\n  | where isnotempty(AddedUrls)\n  | mv-expand AddedUrls\n  | extend Domain = extract(\"^(?:https?:\\\\/\\\\/)?(?:[^@\\\\/\\\\n]+@)?(?:www\\\\.)?([^:\\\\/?\\\\n]+)/\", 1, replace_string(tolower(tostring(AddedUrls)), '\"', \"\"))\n  | where isnotempty(Domain)\n  | extend Domain = strcat(split(Domain, \".\")[-2], \".\", split(Domain, \".\")[-1])\n  | where Domain !in (domains)\n  | project-reorder TimeGenerated, AppDisplayName, AddedUrls, AddedBy, UserAgent, ipAddress\n",
+                "queryFrequency": "P1D",
+                "queryPeriod": "P1D",
+                "triggerOperator": "GreaterThan",
+                "triggerThreshold": 0,
+                "suppressionDuration": "PT1H",
+                "suppressionEnabled": false,
+                "tactics": [],
+                "techniques": [],
+                "alertRuleTemplateName": null,
+                "incidentConfiguration": {
+                    "createIncident": true,
+                    "groupingConfiguration": {
+                        "enabled": false,
+                        "reopenClosedIncident": false,
+                        "lookbackDuration": "PT5M",
+                        "matchingMethod": "AllEntities",
+                        "groupByEntities": [],
+                        "groupByAlertDetails": null,
+                        "groupByCustomDetails": null
+                    }
+                },
+                "eventGroupingSettings": null,
+                "alertDetailsOverride": null,
+                "customDetails": null,
+                "entityMappings": null,
+                "sentinelEntitiesMappings": null
+            }
+        },
+        {
+            "id": "[concat(resourceId('Microsoft.OperationalInsights/workspaces/providers', parameters('workspace'), 'Microsoft.SecurityInsights'),'/alertRules/458dadb4-95f3-4a3e-a046-cc37b112362f')]",
+            "name": "[concat(parameters('workspace'),'/Microsoft.SecurityInsights/458dadb4-95f3-4a3e-a046-cc37b112362f')]",
+            "type": "Microsoft.OperationalInsights/workspaces/providers/alertRules",
+            "kind": "Scheduled",
+            "apiVersion": "2022-09-01-preview",
+            "properties": {
+                "displayName": "Account Elevated to New Role",
+                "description": "'Detects an account that is elevated to a new role where that account has not had that role in the last 14 days.\n  Role elevations are a key mechanism for gaining permissions, monitoring which users have which roles, and for anomalies in those roles is useful for finding suspicious activity.\n  Ref: https://docs.microsoft.com/azure/active-directory/fundamentals/security-operations-privileged-accounts#changes-to-privileged-accounts'\n",
+                "severity": "Medium",
+                "enabled": true,
+                "query": "AuditLogs\n  | where TimeGenerated between(ago(14d)..ago(1d))\n  | where OperationName =~ \"Add member to role completed (PIM activation)\"\n  | where Result =~ \"success\"\n  | extend ElevatedUser = tostring(TargetResources[2].userPrincipalName)\n  | extend displayName = tostring(TargetResources[0].displayName)\n  | extend displayName2 = tostring(TargetResources[3].displayName)\n  | extend ElevatedRole = iif(displayName =~ \"Member\", displayName2, displayName)\n  | join kind = rightanti (AuditLogs\n  | where TimeGenerated > ago(1d)\n  | where OperationName =~ \"Add member to role completed (PIM activation)\"\n  | where Result =~ \"success\"\n  | extend ElevatedUser = tostring(TargetResources[2].userPrincipalName)\n  | extend displayName = tostring(TargetResources[0].displayName)\n  | extend displayName2 = tostring(TargetResources[3].displayName)\n  | extend ElevatedRole = iif(displayName =~ \"Member\", displayName2, displayName)\n  | extend ElevatedBy = tostring(parse_json(tostring(InitiatedBy.user)).userPrincipalName)) on ElevatedRole, ElevatedUser\n  | project-reorder ElevatedUser, ElevatedRole, ResultReason,ElevatedBy\n",
+                "queryFrequency": "P1D",
+                "queryPeriod": "P14D",
+                "triggerOperator": "GreaterThan",
+                "triggerThreshold": 0,
+                "suppressionDuration": "PT1H",
+                "suppressionEnabled": false,
+                "tactics": [],
+                "techniques": [],
+                "alertRuleTemplateName": null,
+                "incidentConfiguration": {
+                    "createIncident": true,
+                    "groupingConfiguration": {
+                        "enabled": false,
+                        "reopenClosedIncident": false,
+                        "lookbackDuration": "PT5M",
+                        "matchingMethod": "AllEntities",
+                        "groupByEntities": [],
+                        "groupByAlertDetails": null,
+                        "groupByCustomDetails": null
+                    }
+                },
+                "eventGroupingSettings": null,
+                "alertDetailsOverride": null,
+                "customDetails": null,
+                "entityMappings": null,
+                "sentinelEntitiesMappings": null
+            }
+        },
+        {
+            "id": "[concat(resourceId('Microsoft.OperationalInsights/workspaces/providers', parameters('workspace'), 'Microsoft.SecurityInsights'),'/alertRules/8a38fd4b-e2b8-4eb3-8889-140173953e0a')]",
+            "name": "[concat(parameters('workspace'),'/Microsoft.SecurityInsights/8a38fd4b-e2b8-4eb3-8889-140173953e0a')]",
+            "type": "Microsoft.OperationalInsights/workspaces/providers/alertRules",
+            "kind": "Scheduled",
+            "apiVersion": "2022-09-01-preview",
+            "properties": {
+                "displayName": "Application ID URI Changed",
+                "description": "'Detects changes to an Application ID URI.\n  Monitor these changes to make sure that they were authorized.\n  Ref: https://docs.microsoft.com/azure/active-directory/fundamentals/security-operations-applications#appid-uri-added-modified-or-removed'\n",
+                "severity": "Medium",
+                "enabled": true,
+                "query": "AuditLogs\n  | where Category == \"ApplicationManagement\"\n  | where OperationName has_any (\"Update Application\", \"Update Service principal\")\n  | extend appName = tostring(parse_json(tostring(InitiatedBy.app)).displayName)\n  | extend UPN = tostring(parse_json(tostring(InitiatedBy.user)).userPrincipalName)\n  | extend UpdatedBy = iif(isnotempty(appName), appName, UPN)\n  | extend mod_props = TargetResources[0].modifiedProperties\n  | extend AppName = tostring(TargetResources[0].displayName)\n  | mv-expand mod_props\n  | where mod_props.displayName has \"AppIdentifierUri\"\n  | extend OldURI = tostring(mod_props.oldValue)\n  | extend NewURI = tostring(mod_props.newValue)\n  | project-reorder TimeGenerated, OperationName, AppName, OldURI, NewURI, UpdatedBy\n",
+                "queryFrequency": "P1D",
+                "queryPeriod": "P1D",
+                "triggerOperator": "GreaterThan",
+                "triggerThreshold": 0,
+                "suppressionDuration": "PT1H",
+                "suppressionEnabled": false,
+                "tactics": [],
+                "techniques": [],
+                "alertRuleTemplateName": null,
+                "incidentConfiguration": {
+                    "createIncident": true,
+                    "groupingConfiguration": {
+                        "enabled": false,
+                        "reopenClosedIncident": false,
+                        "lookbackDuration": "PT5M",
+                        "matchingMethod": "AllEntities",
+                        "groupByEntities": [],
+                        "groupByAlertDetails": null,
+                        "groupByCustomDetails": null
+                    }
+                },
+                "eventGroupingSettings": null,
+                "alertDetailsOverride": null,
+                "customDetails": null,
+                "entityMappings": null,
+                "sentinelEntitiesMappings": null
+            }
+        },
+        {
+            "id": "[concat(resourceId('Microsoft.OperationalInsights/workspaces/providers', parameters('workspace'), 'Microsoft.SecurityInsights'),'/alertRules/bded4088-1697-4250-9bdc-6813345ce5ca')]",
+            "name": "[concat(parameters('workspace'),'/Microsoft.SecurityInsights/bded4088-1697-4250-9bdc-6813345ce5ca')]",
+            "type": "Microsoft.OperationalInsights/workspaces/providers/alertRules",
+            "kind": "Scheduled",
+            "apiVersion": "2022-09-01-preview",
+            "properties": {
+                "displayName": "Application Redirect URL Update",
+                "description": "'Detects the redirect URL of an app being changed.\n  Applications associated with URLs not controlled by the organization can pose a security risk.\n  Ref: https://docs.microsoft.com/azure/active-directory/fundamentals/security-operations-applications#application-configuration-changes'\n",
+                "severity": "Medium",
+                "enabled": true,
+                "query": "AuditLogs\n  | where Category =~ \"ApplicationManagement\"\n  | where Result =~ \"success\"\n  | where OperationName =~ 'Update Application'\n  | mv-expand TargetResources\n  | mv-expand TargetResources.modifiedProperties\n  | where TargetResources_modifiedProperties.displayName =~ \"AppAddress\"\n  | extend Key = tostring(TargetResources_modifiedProperties.displayName)\n  | extend NewValue = TargetResources_modifiedProperties.newValue\n  | extend OldValue = TargetResources_modifiedProperties.oldValue\n  | where isnotempty(Key) and isnotempty(NewValue)\n  | project-reorder Key, NewValue, OldValue\n  | extend NewUrls = extract_all('\"Address\":([^,]*)', tostring(NewValue))\n  | extend OldUrls = extract_all('\"Address\":([^,]*)', tostring(OldValue))\n  | extend AddedUrls = set_difference(NewUrls, OldUrls)\n  | where array_length(AddedUrls) > 0\n  | extend UserAgent = iif(tostring(AdditionalDetails[0].key) == \"User-Agent\", tostring(AdditionalDetails[0].value), \"\")\n  | extend AddingUser = iif(isnotempty(tostring(parse_json(tostring(InitiatedBy.user)).userPrincipalName)) , tostring(parse_json(tostring(InitiatedBy.user)).userPrincipalName), \"\")\n  | extend AddingApp = iif(isnotempty(tostring(parse_json(tostring(InitiatedBy.app)).servicePrincipalName)) , tostring(parse_json(tostring(InitiatedBy.app)).servicePrincipalName), \"\")\n  | extend AddedBy = iif(isnotempty(AddingUser), AddingUser, AddingApp)\n  | project-away AddingApp, AddingUser\n  | extend AppDisplayName = tostring(TargetResources.displayName)\n  | extend ipAddress = tostring(parse_json(tostring(InitiatedBy.user)).ipAddress)\n  | project-reorder TimeGenerated, AppDisplayName, AddedUrls, AddedBy, UserAgent, ipAddress\n",
+                "queryFrequency": "P1D",
+                "queryPeriod": "P1D",
+                "triggerOperator": "GreaterThan",
+                "triggerThreshold": 0,
+                "suppressionDuration": "PT1H",
+                "suppressionEnabled": false,
+                "tactics": [],
+                "techniques": [],
+                "alertRuleTemplateName": null,
+                "incidentConfiguration": {
+                    "createIncident": true,
+                    "groupingConfiguration": {
+                        "enabled": false,
+                        "reopenClosedIncident": false,
+                        "lookbackDuration": "PT5M",
+                        "matchingMethod": "AllEntities",
+                        "groupByEntities": [],
+                        "groupByAlertDetails": null,
+                        "groupByCustomDetails": null
+                    }
+                },
+                "eventGroupingSettings": null,
+                "alertDetailsOverride": null,
+                "customDetails": null,
+                "entityMappings": null,
+                "sentinelEntitiesMappings": null
+            }
+        },
+        {
+            "id": "[concat(resourceId('Microsoft.OperationalInsights/workspaces/providers', parameters('workspace'), 'Microsoft.SecurityInsights'),'/alertRules/83911fe7-8067-42a3-a01a-7a6a21e530fc')]",
+            "name": "[concat(parameters('workspace'),'/Microsoft.SecurityInsights/83911fe7-8067-42a3-a01a-7a6a21e530fc')]",
+            "type": "Microsoft.OperationalInsights/workspaces/providers/alertRules",
+            "kind": "Scheduled",
+            "apiVersion": "2022-09-01-preview",
+            "properties": {
+                "displayName": "Changes to Application Ownership",
+                "description": "'Detects changes to the ownership of an appplicaiton.\n  Monitor these changes to make sure that they were authorized.\n  Ref: https://docs.microsoft.com/azure/active-directory/fundamentals/security-operations-applications#new-owner'\n",
+                "severity": "Medium",
+                "enabled": true,
+                "query": "AuditLogs\n  | where Category =~ \"ApplicationManagement\"\n  | where OperationName =~ \"Add owner to application\"\n  | extend appName = tostring(parse_json(tostring(InitiatedBy.app)).displayName)\n  | extend UPN = tostring(parse_json(tostring(InitiatedBy.user)).userPrincipalName)\n  | extend UpdatedBy = iif(isnotempty(appName), appName, UPN)\n  | extend mod_props = TargetResources[0].modifiedProperties\n  | extend AddedUser = TargetResources[0].userPrincipalName\n  | mv-expand mod_props\n  | where mod_props.displayName =~ \"Application.DisplayName\"\n  | extend AppName = tostring(parse_json(tostring(mod_props.newValue)))\n  | project-reorder TimeGenerated, OperationName, AppName, AddedUser, UpdatedBy\n",
+                "queryFrequency": "P1D",
+                "queryPeriod": "P1D",
+                "triggerOperator": "GreaterThan",
+                "triggerThreshold": 0,
+                "suppressionDuration": "PT1H",
+                "suppressionEnabled": false,
+                "tactics": [],
+                "techniques": [],
+                "alertRuleTemplateName": null,
+                "incidentConfiguration": {
+                    "createIncident": true,
+                    "groupingConfiguration": {
+                        "enabled": false,
+                        "reopenClosedIncident": false,
+                        "lookbackDuration": "PT5M",
+                        "matchingMethod": "AllEntities",
+                        "groupByEntities": [],
+                        "groupByAlertDetails": null,
+                        "groupByCustomDetails": null
+                    }
+                },
+                "eventGroupingSettings": null,
+                "alertDetailsOverride": null,
+                "customDetails": null,
+                "entityMappings": null,
+                "sentinelEntitiesMappings": null
+            }
+        },
+        {
+            "id": "[concat(resourceId('Microsoft.OperationalInsights/workspaces/providers', parameters('workspace'), 'Microsoft.SecurityInsights'),'/alertRules/3f98c552-cf72-42a0-8bfb-dd284733d48b')]",
+            "name": "[concat(parameters('workspace'),'/Microsoft.SecurityInsights/3f98c552-cf72-42a0-8bfb-dd284733d48b')]",
+            "type": "Microsoft.OperationalInsights/workspaces/providers/alertRules",
+            "kind": "Scheduled",
+            "apiVersion": "2022-09-01-preview",
+            "properties": {
+                "displayName": "Conditional Access Policy Modified by New User",
+                "description": "'Detects a Conditional Access Policy being modified by a user who has not modified a policy in the last 14 days.\n  A threat actor may try to modify policies to weaken the security controls in place.\n  Investigate any change to ensure they are approved.\n  Ref: https://docs.microsoft.com/azure/active-directory/fundamentals/security-operations-infrastructure#conditional-access'\n",
+                "severity": "Medium",
+                "enabled": true,
+                "query": "let known_users = (AuditLogs\n  | where TimeGenerated between(ago(14d)..ago(1d))\n  | where OperationName has \"conditional access policy\"\n  | where Result =~ \"success\"\n  | extend userPrincipalName = tostring(parse_json(tostring(InitiatedBy.user)).userPrincipalName)\n  | summarize by userPrincipalName);\n  AuditLogs\n  | where TimeGenerated > ago(1d)\n  | where OperationName has \"conditional access policy\"\n  | where Result =~ \"success\"\n  | extend userPrincipalName = tostring(parse_json(tostring(InitiatedBy.user)).userPrincipalName)\n  | extend CAPolicyName = tostring(TargetResources[0].displayName)\n  | extend ipAddress = tostring(parse_json(tostring(InitiatedBy.user)).ipAddress)\n  | where userPrincipalName !in (known_users)\n  | extend NewPolicyValues = TargetResources[0].modifiedProperties[0].newValue\n  | extend OldPolicyValues = TargetResources[0].modifiedProperties[0].oldValue\n  | project-reorder TimeGenerated, OperationName, CAPolicyName, userPrincipalName, ipAddress, NewPolicyValues, OldPolicyValues\n",
+                "queryFrequency": "P1D",
+                "queryPeriod": "P7D",
+                "triggerOperator": "GreaterThan",
+                "triggerThreshold": 0,
+                "suppressionDuration": "PT1H",
+                "suppressionEnabled": false,
+                "tactics": [],
+                "techniques": [],
+                "alertRuleTemplateName": null,
+                "incidentConfiguration": {
+                    "createIncident": true,
+                    "groupingConfiguration": {
+                        "enabled": false,
+                        "reopenClosedIncident": false,
+                        "lookbackDuration": "PT5M",
+                        "matchingMethod": "AllEntities",
+                        "groupByEntities": [],
+                        "groupByAlertDetails": null,
+                        "groupByCustomDetails": null
+                    }
+                },
+                "eventGroupingSettings": null,
+                "alertDetailsOverride": null,
+                "customDetails": null,
+                "entityMappings": null,
+                "sentinelEntitiesMappings": null
+            }
+        },
+        {
+            "id": "[concat(resourceId('Microsoft.OperationalInsights/workspaces/providers', parameters('workspace'), 'Microsoft.SecurityInsights'),'/alertRules/4bb4908b-2391-479c-8c55-06a7cac50cf7')]",
+            "name": "[concat(parameters('workspace'),'/Microsoft.SecurityInsights/4bb4908b-2391-479c-8c55-06a7cac50cf7')]",
+            "type": "Microsoft.OperationalInsights/workspaces/providers/alertRules",
+            "kind": "Scheduled",
+            "apiVersion": "2022-09-01-preview",
+            "properties": {
+                "displayName": "End-user consent stopped due to risk-based consent",
+                "description": "'Detects a user's consent to an OAuth application being blocked due to it being too risky.\n  These events should be investigated to understand why the user attempted to consent to the applicaiton and what other applicaitons they may have consented to.\n  Ref: https://docs.microsoft.com/azure/active-directory/fundamentals/security-operations-applications#end-user-stopped-due-to-risk-based-consent'\n",
+                "severity": "Medium",
+                "enabled": true,
+                "query": "AuditLogs\n  | where OperationName has \"Consent to application\"\n  | where Result =~ \"failure\"\n  | extend ipAddress = tostring(parse_json(tostring(InitiatedBy.user)).ipAddress)\n  | extend userPrincipalName = tostring(parse_json(tostring(InitiatedBy.user)).userPrincipalName)\n  | extend userAgent = iif(AdditionalDetails[0].key == \"User-Agent\", tostring(AdditionalDetails[0].value), tostring(AdditionalDetails[1].value))\n  | where isnotempty(TargetResources)\n  | extend AppName = tostring(TargetResources[0].displayName)\n  | mv-expand TargetResources[0].modifiedProperties\n  | extend TargetResources_0_modifiedProperties = columnifexists(\"TargetResources_0_modifiedProperties\", '')\n  | where isnotempty(TargetResources_0_modifiedProperties)\n  | where TargetResources_0_modifiedProperties.displayName =~ \"MethodExecutionResult.\"\n  | extend FailureReason = tostring(parse_json(tostring(TargetResources_0_modifiedProperties.newValue)))\n  | where FailureReason contains \"Risky\"\n  | project-reorder TimeGenerated, OperationName, Result, AppName, FailureReason, userPrincipalName, userAgent, ipAddress\n",
+                "queryFrequency": "P1D",
+                "queryPeriod": "P1D",
+                "triggerOperator": "GreaterThan",
+                "triggerThreshold": 0,
+                "suppressionDuration": "PT1H",
+                "suppressionEnabled": false,
+                "tactics": [],
+                "techniques": [],
+                "alertRuleTemplateName": null,
+                "incidentConfiguration": {
+                    "createIncident": true,
+                    "groupingConfiguration": {
+                        "enabled": false,
+                        "reopenClosedIncident": false,
+                        "lookbackDuration": "PT5M",
+                        "matchingMethod": "AllEntities",
+                        "groupByEntities": [],
+                        "groupByAlertDetails": null,
+                        "groupByCustomDetails": null
+                    }
+                },
+                "eventGroupingSettings": null,
+                "alertDetailsOverride": null,
+                "customDetails": null,
+                "entityMappings": null,
+                "sentinelEntitiesMappings": null
+            }
+        },
+        {
+            "id": "[concat(resourceId('Microsoft.OperationalInsights/workspaces/providers', parameters('workspace'), 'Microsoft.SecurityInsights'),'/alertRules/c5c1e4f8-66c3-42a7-9ea4-7357b89e5a56')]",
+            "name": "[concat(parameters('workspace'),'/Microsoft.SecurityInsights/c5c1e4f8-66c3-42a7-9ea4-7357b89e5a56')]",
+            "type": "Microsoft.OperationalInsights/workspaces/providers/alertRules",
+            "kind": "Scheduled",
+            "apiVersion": "2022-09-01-preview",
+            "properties": {
+                "displayName": "Guest Users Invited to Tenant by New Inviters",
+                "description": "'Detects when a Guest User is added by a user account that has not been seen adding a guest in the previous 14 days.\n  Monitoring guest accounts and the access they are provided is important to detect potential account abuse.\n  Accounts added should be investigated to ensure the activity was legitimate.\n  Ref: https://docs.microsoft.com/azure/active-directory/fundamentals/security-operations-user-accounts#monitoring-for-failed-unusual-sign-ins'\n",
+                "severity": "Medium",
+                "enabled": true,
+                "query": "let inviting_users = (AuditLogs\n  | where TimeGenerated between(ago(14d)..ago(1d))\n  | where OperationName =~ \"Invite external user\"\n  | where Result =~ \"success\"\n  | extend invitingUser = tostring(parse_json(tostring(InitiatedBy.user)).userPrincipalName)\n  | where isnotempty(invitingUser)\n  | summarize by invitingUser);\n  AuditLogs\n  | where TimeGenerated > ago(1d)\n  | where OperationName =~ \"Invite external user\"\n  | where Result =~ \"success\"\n  | extend invitingUser = tostring(parse_json(tostring(InitiatedBy.user)).userPrincipalName)\n  | where isnotempty(invitingUser) and invitingUser !in (inviting_users)\n  | extend invitedUserPrincipalName = tostring(TargetResources[0].userPrincipalName)\n  | extend ipAddress = tostring(parse_json(tostring(InitiatedBy.user)).ipAddress)\n",
+                "queryFrequency": "P1D",
+                "queryPeriod": "P14D",
+                "triggerOperator": "GreaterThan",
+                "triggerThreshold": 0,
+                "suppressionDuration": "PT1H",
+                "suppressionEnabled": false,
+                "tactics": [],
+                "techniques": [],
+                "alertRuleTemplateName": null,
+                "incidentConfiguration": {
+                    "createIncident": true,
+                    "groupingConfiguration": {
+                        "enabled": false,
+                        "reopenClosedIncident": false,
+                        "lookbackDuration": "PT5M",
+                        "matchingMethod": "AllEntities",
+                        "groupByEntities": [],
+                        "groupByAlertDetails": null,
+                        "groupByCustomDetails": null
+                    }
+                },
+                "eventGroupingSettings": null,
+                "alertDetailsOverride": null,
+                "customDetails": null,
+                "entityMappings": null,
+                "sentinelEntitiesMappings": null
+            }
+        },
+        {
+            "id": "[concat(resourceId('Microsoft.OperationalInsights/workspaces/providers', parameters('workspace'), 'Microsoft.SecurityInsights'),'/alertRules/3f0df5f6-aac9-4bf7-a083-39f2ed81087a')]",
+            "name": "[concat(parameters('workspace'),'/Microsoft.SecurityInsights/3f0df5f6-aac9-4bf7-a083-39f2ed81087a')]",
+            "type": "Microsoft.OperationalInsights/workspaces/providers/alertRules",
+            "kind": "Scheduled",
+            "apiVersion": "2022-09-01-preview",
+            "properties": {
+                "displayName": "New External User Granted Admin",
+                "description": "'This query will detect instances where a newly invited external user is granted an administrative role. By default this query\nwill alert on any granted administrative role, however this can be modified using the roles variable if false positives occur\nin your environment. The maximum delta between invite and escalation to admin is 60 minues, this can be configured using the \ndeltaBetweenInviteEscalation variable.'\n",
+                "severity": "Medium",
+                "enabled": true,
+                "query": "// Administrative roles to look for, default is all admin roles\nlet roles = dynamic([\"Administrator\", \"Admin\"]);\n// The maximum distances between and invite and acceptance\nlet maxTimeBetweenInviteAccept = 30min;\n// The delta (minutes) between the invite being sent and the account being escalated\nlet deltaBetweenInviteEscalation = 60;\n// Collect external user invitations\nlet invite = AuditLogs\n| where Category =~ \"UserManagement\"\n| where OperationName =~ \"Invite external user\"\n| extend Target = tostring(TargetResources[0].[\"userPrincipalName\"])\n| extend InviteInitiator = tostring(InitiatedBy.[\"user\"].[\"userPrincipalName\"])\n| where isnotempty(InviteInitiator);\n// Collect redeem events\nlet redeem = AuditLogs\n| where Category =~ \"UserManagement\"\n| where OperationName =~ \"Redeem external user invite\"\n| where Result =~ \"success\"\n| extend Target = tostring(TargetResources[0].[\"displayName\"]) | extend Target = tostring(extract(@\"UPN\\:\\s(.+)\\,\\sEmail\",1,Target))\n| where isnotempty(Target);\n// Union the inivtation and redeem data then run the sequence_detect kusto plugin\ninvite\n| union redeem\n| order by TimeGenerated\n| project TimeGenerated, Target, InviteInitiator, OperationName, TenantId\n| evaluate sequence_detect(TimeGenerated, maxTimeBetweenInviteAccept, maxTimeBetweenInviteAccept, invite=(OperationName has \"Invite external user\"), redeem=(OperationName has \"Redeem external user invite\"), Target)\n| join (\nAuditLogs\n| where Category =~ \"RoleManagement\"\n| where AADOperationType in (\"Assign\", \"AssignEligibleRole\")\n| where ActivityDisplayName has_any (\"Add eligible member to role\", \"Add member to role\")\n| mv-expand TargetResources\n// Limit to external accounts\n| where TargetResources.userPrincipalName has \"EXT\"\n| mv-expand TargetResources.modifiedProperties\n| extend displayName_ = tostring(TargetResources_modifiedProperties.displayName)\n| where displayName_ =~ \"Role.DisplayName\"\n| extend RoleName = tostring(parse_json(tostring(TargetResources_modifiedProperties.newValue)))\n// Perform check for admin roles\n| where RoleName has_any(roles)\n| extend InitiatingApp = tostring(parse_json(tostring(InitiatedBy.app)).displayName)\n| extend Initiator = iif(isnotempty(InitiatingApp), InitiatingApp, tostring(parse_json(tostring(InitiatedBy.user)).userPrincipalName))\n| where Initiator != \"MS-PIM\"\n| extend Target = tostring(TargetResources.userPrincipalName)\n| summarize by TimeGenerated, OperationName,  RoleName, Target, Initiator, Result\n) on Target\n// Calculate delta between the invite and the account escalation\n| extend delta = datetime_diff(\"minute\", TimeGenerated, invite_TimeGenerated)\n| where delta <= deltaBetweenInviteEscalation\n| project InvitationTime=invite_TimeGenerated, RedeemTime=redeem_TimeGenerated, GrantTime=TimeGenerated, ExternalUser=Target, RoleGranted=RoleName, AdminInitiator=Initiator, MinsBetweenInviteAndEscalation=delta\n",
+                "queryFrequency": "P1D",
+                "queryPeriod": "P1D",
+                "triggerOperator": "GreaterThan",
+                "triggerThreshold": 0,
+                "suppressionDuration": "PT1H",
+                "suppressionEnabled": false,
+                "tactics": [],
+                "techniques": [],
+                "alertRuleTemplateName": null,
+                "incidentConfiguration": {
+                    "createIncident": true,
+                    "groupingConfiguration": {
+                        "enabled": false,
+                        "reopenClosedIncident": false,
+                        "lookbackDuration": "PT5M",
+                        "matchingMethod": "AllEntities",
+                        "groupByEntities": [],
+                        "groupByAlertDetails": null,
+                        "groupByCustomDetails": null
+                    }
+                },
+                "eventGroupingSettings": null,
+                "alertDetailsOverride": null,
+                "customDetails": null,
+                "entityMappings": null,
+                "sentinelEntitiesMappings": null
+            }
+        },
+        {
+            "id": "[concat(resourceId('Microsoft.OperationalInsights/workspaces/providers', parameters('workspace'), 'Microsoft.SecurityInsights'),'/alertRules/15625e62-b858-487f-810d-db804cfe702f')]",
+            "name": "[concat(parameters('workspace'),'/Microsoft.SecurityInsights/15625e62-b858-487f-810d-db804cfe702f')]",
+            "type": "Microsoft.OperationalInsights/workspaces/providers/alertRules",
+            "kind": "Scheduled",
+            "apiVersion": "2022-09-01-preview",
+            "properties": {
+                "displayName": "Privileged Account Permissions Changed",
+                "description": "'Detects changes to permissions assigned to admin users. Threat actors may try and increase permission scope by adding additional roles to already privileged accounts.\nReview any modifications to ensure they were made legitimately.\nRef: https://docs.microsoft.com/azure/active-directory/fundamentals/security-operations-privileged-accounts#changes-to-privileged-accounts'\n",
+                "severity": "Medium",
+                "enabled": true,
+                "query": "let admin_users = (IdentityInfo\n  | where TimeGenerated > ago(2d)\n  | summarize arg_max(TimeGenerated, *) by AccountUPN\n  | where AssignedRoles contains \"admin\"\n  | summarize by tolower(AccountUPN));\n  AuditLogs\n  | where Category =~ \"RoleManagement\"\n  | where OperationName has \"Add eligible member\"\n  | extend userPrincipalName = tostring(TargetResources[0].userPrincipalName)\n  | where tolower(userPrincipalName) in (admin_users)\n  | extend Group = tostring(TargetResources[0].displayName)\n  | extend AddedTo = iif(isnotempty(userPrincipalName), userPrincipalName, Group)\n  | extend mod_props = TargetResources[0].modifiedProperties\n  | extend appName = tostring(parse_json(tostring(InitiatedBy.app)).displayName)\n  | extend UPN = tostring(parse_json(tostring(InitiatedBy.user)).userPrincipalName)\n  | extend AddedBy = iif(isnotempty(appName), appName, UPN)\n  | mv-expand mod_props\n  | where mod_props.displayName == \"Role.DisplayName\"\n  | extend RoleAdded = tostring(parse_json(tostring(mod_props.newValue)))\n  | project-reorder TimeGenerated, OperationName, AddedTo, RoleAdded, AddedBy\n",
+                "queryFrequency": "P1D",
+                "queryPeriod": "P2D",
+                "triggerOperator": "GreaterThan",
+                "triggerThreshold": 0,
+                "suppressionDuration": "PT1H",
+                "suppressionEnabled": false,
+                "tactics": [],
+                "techniques": [],
+                "alertRuleTemplateName": null,
+                "incidentConfiguration": {
+                    "createIncident": true,
+                    "groupingConfiguration": {
+                        "enabled": false,
+                        "reopenClosedIncident": false,
+                        "lookbackDuration": "PT5M",
+                        "matchingMethod": "AllEntities",
+                        "groupByEntities": [],
+                        "groupByAlertDetails": null,
+                        "groupByCustomDetails": null
+                    }
+                },
+                "eventGroupingSettings": null,
+                "alertDetailsOverride": null,
+                "customDetails": null,
+                "entityMappings": null,
+                "sentinelEntitiesMappings": null
+            }
+        },
+        {
+            "id": "[concat(resourceId('Microsoft.OperationalInsights/workspaces/providers', parameters('workspace'), 'Microsoft.SecurityInsights'),'/alertRules/f38cba09-4a91-40d7-b300-e133da462fcc')]",
+            "name": "[concat(parameters('workspace'),'/Microsoft.SecurityInsights/f38cba09-4a91-40d7-b300-e133da462fcc')]",
+            "type": "Microsoft.OperationalInsights/workspaces/providers/alertRules",
+            "kind": "Scheduled",
+            "apiVersion": "2022-09-01-preview",
+            "properties": {
+                "displayName": "Service Principal Assigned App Role With Sensitive Access",
+                "description": "'Detects a Service Principal being assigned an app role that has sensitive access such as Mail.Read.\n  A threat actor who compromises a Service Principal may assign it an app role to allow it to access sensitive data, or to perform other actions.\n  Ensure that any assignment to a Service Principal is valid and appropriate.\n  Ref: https://docs.microsoft.com/azure/active-directory/fundamentals/security-operations-applications#application-granted-highly-privileged-permissions'\n",
+                "severity": "Medium",
+                "enabled": true,
+                "query": "// Add other permissions to this list as needed\n  let permissions = dynamic([\"Mail.Read\", \"offline_access\", \"Files.Read\", \"Notes.Read\", \"ChannelMessage.Read\", \"Chat.Read\", \"TeamsActivity.Read\",\n  \"Group.Read\", \"EWS.AccessAsUser.All\", \"EAS.AccessAsUser.All\"]);\n  AuditLogs\n  | where OperationName =~ \"Add app role assignment to service principal\"\n  | mv-expand TargetResources[0].modifiedProperties\n  | extend TargetResources_0_modifiedProperties = columnifexists(\"TargetResources_0_modifiedProperties\", '')\n  | where isnotempty(TargetResources_0_modifiedProperties)\n  | where TargetResources_0_modifiedProperties.displayName =~ \"AppRole.Value\" or TargetResources_0_modifiedProperties.displayName =~ \"DelegatedPermissionGrant.Scope\"\n  | extend Permissions = split((parse_json(tostring(TargetResources_0_modifiedProperties.newValue))), \" \")\n  | where Permissions has_any (permissions)\n  | summarize AddedPermissions=make_set(Permissions) by CorrelationId\n  | join kind=inner (AuditLogs\n  | where OperationName =~ \"Add app role assignment to service principal\") on CorrelationId\n  | extend InitiatedBy = tostring(iff(isnotempty(InitiatedBy.user.userPrincipalName),InitiatedBy.user.userPrincipalName, InitiatedBy.app.displayName))\n  | extend ServicePrincipal = tostring(parse_json(tostring(parse_json(tostring(TargetResources[0].modifiedProperties))[4].newValue)))\n  | extend SPID = tostring(parse_json(tostring(parse_json(tostring(TargetResources[0].modifiedProperties))[6].newValue)))\n  | extend InitiatedBy = pack(\"User\", InitiatedBy, \"UA\", columnifexists(\"UserAgent\",''), \"IPAddress\", columnifexists(\"IpAddress\",''))\n  | mv-expand kind=array AddedPermissions\n  | summarize FirstSeen = min(TimeGenerated), LastSeen = max(TimeGenerated), make_set(InitiatedBy), make_set(AddedPermissions) by SPID, ServicePrincipal\n",
+                "queryFrequency": "P1D",
+                "queryPeriod": "P1D",
+                "triggerOperator": "GreaterThan",
+                "triggerThreshold": 0,
+                "suppressionDuration": "PT1H",
+                "suppressionEnabled": false,
+                "tactics": [],
+                "techniques": [],
+                "alertRuleTemplateName": null,
+                "incidentConfiguration": {
+                    "createIncident": true,
+                    "groupingConfiguration": {
+                        "enabled": false,
+                        "reopenClosedIncident": false,
+                        "lookbackDuration": "PT5M",
+                        "matchingMethod": "AllEntities",
+                        "groupByEntities": [],
+                        "groupByAlertDetails": null,
+                        "groupByCustomDetails": null
+                    }
+                },
+                "eventGroupingSettings": null,
+                "alertDetailsOverride": null,
+                "customDetails": null,
+                "entityMappings": null,
+                "sentinelEntitiesMappings": null
+            }
+        },
+        {
+            "id": "[concat(resourceId('Microsoft.OperationalInsights/workspaces/providers', parameters('workspace'), 'Microsoft.SecurityInsights'),'/alertRules/6ca2592f-68bc-4c51-b49d-2b7be736094c')]",
+            "name": "[concat(parameters('workspace'),'/Microsoft.SecurityInsights/6ca2592f-68bc-4c51-b49d-2b7be736094c')]",
+            "type": "Microsoft.OperationalInsights/workspaces/providers/alertRules",
+            "kind": "Scheduled",
+            "apiVersion": "2022-09-01-preview",
+            "properties": {
+                "displayName": "Service Principal Assigned Privileged Role",
+                "description": "'Detects a privileged role being added to a Service Principal.\n  Ensure that any assignment to a Service Principal is valid and appropriate - Service Principals should not be assigned to very highly privileged roles such as Global Admin.\n  Ref: https://docs.microsoft.com/azure/active-directory/fundamentals/security-operations-privileged-accounts#changes-to-privileged-accounts'\n",
+                "severity": "Medium",
+                "enabled": true,
+                "query": "AuditLogs\n  | where OperationName has_all (\"member to role\", \"add\")\n  | where Result =~ \"Success\"\n  | extend type_ = tostring(TargetResources[0].type)\n  | where type_ =~ \"ServicePrincipal\"\n  | where isnotempty(TargetResources)\n  | extend ServicePrincipal = tostring(TargetResources[0].displayName)\n  | extend SPID = tostring(TargetResources[0].id)\n  | mv-expand TargetResources[0].modifiedProperties\n  | extend TargetResources_0_modifiedProperties = columnifexists(\"TargetResources_0_modifiedProperties\", '')\n  | where isnotempty(TargetResources_0_modifiedProperties)\n  | where TargetResources_0_modifiedProperties.displayName =~ \"Role.DisplayName\"\n  | extend TargetRole = parse_json(tostring(TargetResources_0_modifiedProperties.newValue))\n  | where TargetRole contains \"admin\"\n  | extend AddedByApp = iif(\n  isnotempty(tostring(parse_json(tostring(InitiatedBy.app)).servicePrincipalName)),\n  tostring(parse_json(tostring(InitiatedBy.app)).servicePrincipalName),\n  tostring(parse_json(tostring(InitiatedBy.app)).displayName)\n  )\n  | extend AddedByUser = tostring(parse_json(tostring(InitiatedBy.user)).userPrincipalName)\n  | extend AddedBy = iif(isnotempty(AddedByApp), AddedByApp, AddedByUser)\n  | extend IpAddress = tostring(parse_json(tostring(InitiatedBy.user)).ipAddress)\n  | project-reorder TimeGenerated, ServicePrincipal, SPID, TargetRole, AddedBy, IpAddress\n  | project-away AddedByApp, AddedByUser\n",
+                "queryFrequency": "P1D",
+                "queryPeriod": "P1D",
+                "triggerOperator": "GreaterThan",
+                "triggerThreshold": 0,
+                "suppressionDuration": "PT1H",
+                "suppressionEnabled": false,
+                "tactics": [],
+                "techniques": [],
+                "alertRuleTemplateName": null,
+                "incidentConfiguration": {
+                    "createIncident": true,
+                    "groupingConfiguration": {
+                        "enabled": false,
+                        "reopenClosedIncident": false,
+                        "lookbackDuration": "PT5M",
+                        "matchingMethod": "AllEntities",
+                        "groupByEntities": [],
+                        "groupByAlertDetails": null,
+                        "groupByCustomDetails": null
+                    }
+                },
+                "eventGroupingSettings": null,
+                "alertDetailsOverride": null,
+                "customDetails": null,
+                "entityMappings": null,
+                "sentinelEntitiesMappings": null
+            }
+        },
+        {
+            "id": "[concat(resourceId('Microsoft.OperationalInsights/workspaces/providers', parameters('workspace'), 'Microsoft.SecurityInsights'),'/alertRules/d0c46ecb-fb10-4adc-a6e8-91924997eabd')]",
+            "name": "[concat(parameters('workspace'),'/Microsoft.SecurityInsights/d0c46ecb-fb10-4adc-a6e8-91924997eabd')]",
+            "type": "Microsoft.OperationalInsights/workspaces/providers/alertRules",
+            "kind": "Scheduled",
+            "apiVersion": "2022-09-01-preview",
+            "properties": {
+                "displayName": "Suspicious linking of existing user to external User",
+                "description": "' This query will detect when an attempt is made to update an existing user and link it to an guest or external identity. These activities are unusual and such linking of external \nidentities should be investigated. In some cases you may see internal AAD sync accounts (Sync_) do this which may be benign'\n",
+                "severity": "Medium",
+                "enabled": true,
+                "query": "let lookback = 1d;\nAuditLogs \n| where TimeGenerated > ago(lookback)\n| where OperationName=~ \"Update user\" \n| where Result =~ \"success\" \n| mv-expand TargetResources \n| mv-expand TargetResources.modifiedProperties \n| extend displayName_ = tostring(TargetResources_modifiedProperties.displayName) , oldValue_ = tostring(TargetResources_modifiedProperties.oldValue), newValue_ = tostring(TargetResources_modifiedProperties.newValue)\n| where displayName_ == \"UserPrincipalName\" and oldValue_ !has \"#EXT\" and newValue_ has \"#EXT\"\n| extend InitiatingApp = tostring(parse_json(tostring(InitiatedBy.app)).displayName) \n| extend Initiator = iif(isnotempty(InitiatingApp), InitiatingApp, tostring(parse_json(tostring(InitiatedBy.user)).userPrincipalName)) , IPAddress = tostring(InitiatedBy.[\"user\"].[\"ipAddress\"])\n| project TimeGenerated, AADTenantId, IPAddress, Initiator, displayName_, oldValue_, newValue_\n",
+                "queryFrequency": "P1D",
+                "queryPeriod": "P1D",
+                "triggerOperator": "GreaterThan",
+                "triggerThreshold": 0,
+                "suppressionDuration": "PT1H",
+                "suppressionEnabled": false,
+                "tactics": [],
+                "techniques": [],
+                "alertRuleTemplateName": null,
+                "incidentConfiguration": {
+                    "createIncident": true,
+                    "groupingConfiguration": {
+                        "enabled": false,
+                        "reopenClosedIncident": false,
+                        "lookbackDuration": "PT5M",
+                        "matchingMethod": "AllEntities",
+                        "groupByEntities": [],
+                        "groupByAlertDetails": null,
+                        "groupByCustomDetails": null
+                    }
+                },
+                "eventGroupingSettings": null,
+                "alertDetailsOverride": null,
+                "customDetails": null,
+                "entityMappings": null,
+                "sentinelEntitiesMappings": null
+            }
+        },
+        {
+            "id": "[concat(resourceId('Microsoft.OperationalInsights/workspaces/providers', parameters('workspace'), 'Microsoft.SecurityInsights'),'/alertRules/e445a5ac-b87b-4fb3-b34d-4975178f7ba0')]",
+            "name": "[concat(parameters('workspace'),'/Microsoft.SecurityInsights/e445a5ac-b87b-4fb3-b34d-4975178f7ba0')]",
+            "type": "Microsoft.OperationalInsights/workspaces/providers/alertRules",
+            "kind": "Scheduled",
+            "apiVersion": "2022-09-01-preview",
+            "properties": {
+                "displayName": "Test",
+                "description": "",
+                "severity": "Medium",
+                "enabled": true,
+                "query": "AuditLogs\r\n| limit 10 ",
+                "queryFrequency": "PT5H",
+                "queryPeriod": "PT5H",
+                "triggerOperator": "GreaterThan",
+                "triggerThreshold": 0,
+                "suppressionDuration": "PT5H",
+                "suppressionEnabled": false,
+                "tactics": [],
+                "techniques": [],
+                "alertRuleTemplateName": null,
+                "incidentConfiguration": {
+                    "createIncident": true,
+                    "groupingConfiguration": {
+                        "enabled": false,
+                        "reopenClosedIncident": false,
+                        "lookbackDuration": "PT5H",
+                        "matchingMethod": "AllEntities",
+                        "groupByEntities": [],
+                        "groupByAlertDetails": [],
+                        "groupByCustomDetails": []
+                    }
+                },
+                "eventGroupingSettings": {
+                    "aggregationKind": "SingleAlert"
+                },
+                "alertDetailsOverride": null,
+                "customDetails": null,
+                "entityMappings": null,
+                "sentinelEntitiesMappings": null
+            }
+        },
+        {
+            "id": "[concat(resourceId('Microsoft.OperationalInsights/workspaces/providers', parameters('workspace'), 'Microsoft.SecurityInsights'),'/alertRules/31aaa2ef-2c0f-44f0-892f-f73142ae20f0')]",
+            "name": "[concat(parameters('workspace'),'/Microsoft.SecurityInsights/31aaa2ef-2c0f-44f0-892f-f73142ae20f0')]",
+            "type": "Microsoft.OperationalInsights/workspaces/providers/alertRules",
+            "kind": "Scheduled",
+            "apiVersion": "2022-09-01-preview",
+            "properties": {
+                "displayName": "User State changed from Guest to Member",
+                "description": "'Detects when a guest account in a tenant is converted to a member of the tenant.\n  Monitoring guest accounts and the access they are provided is important to detect potential account abuse.\n  Accounts converted to members should be investigated to ensure the activity was legitimate.\n  Ref: https://docs.microsoft.com/azure/active-directory/fundamentals/security-operations-user-accounts#monitoring-for-failed-unusual-sign-ins'\n",
+                "severity": "Medium",
+                "enabled": true,
+                "query": "AuditLogs\n  | where OperationName =~ \"Update user\"\n  | where Result =~ \"success\"\n  | mv-expand TargetResources\n  | mv-expand TargetResources.modifiedProperties\n  | where TargetResources_modifiedProperties.displayName =~ \"TargetId.UserType\"\n  | extend UpdatingServicePrincipal = tostring(parse_json(tostring(InitiatedBy.app)).servicePrincipalId)\n  | extend UpdatingUserPrincipal = tostring(parse_json(tostring(InitiatedBy.user)).userPrincipalName)\n  | extend UpdatingUser = iif(isnotempty(UpdatingServicePrincipal), UpdatingServicePrincipal, UpdatingUserPrincipal)\n  | extend UpdatedUserPrincipalName = tostring(TargetResources.userPrincipalName)\n  | project-reorder TimeGenerated, UpdatedUserPrincipalName, UpdatingUser\n  | where parse_json(tostring(TargetResources_modifiedProperties.newValue)) =~ \"\\\"Member\\\"\" and parse_json(tostring(TargetResources_modifiedProperties.oldValue)) =~ \"\\\"Guest\\\"\"\n",
+                "queryFrequency": "P1D",
+                "queryPeriod": "P1D",
+                "triggerOperator": "GreaterThan",
+                "triggerThreshold": 0,
+                "suppressionDuration": "PT1H",
+                "suppressionEnabled": false,
+                "tactics": [],
+                "techniques": [],
+                "alertRuleTemplateName": null,
+                "incidentConfiguration": {
+                    "createIncident": true,
+                    "groupingConfiguration": {
+                        "enabled": false,
+                        "reopenClosedIncident": false,
+                        "lookbackDuration": "PT5M",
+                        "matchingMethod": "AllEntities",
+                        "groupByEntities": [],
+                        "groupByAlertDetails": null,
+                        "groupByCustomDetails": null
+                    }
+                },
+                "eventGroupingSettings": null,
+                "alertDetailsOverride": null,
+                "customDetails": null,
+                "entityMappings": null,
+                "sentinelEntitiesMappings": null
+            }
+        },
+        {
+            "id": "[concat(resourceId('Microsoft.OperationalInsights/workspaces/providers', parameters('workspace'), 'Microsoft.SecurityInsights'),'/alertRules/8c50640d-91bf-4d02-ad80-6905e97e3312')]",
+            "name": "[concat(parameters('workspace'),'/Microsoft.SecurityInsights/8c50640d-91bf-4d02-ad80-6905e97e3312')]",
+            "type": "Microsoft.OperationalInsights/workspaces/providers/alertRules",
+            "kind": "Scheduled",
+            "apiVersion": "2022-09-01-preview",
+            "properties": {
+                "displayName": "Changes to Application Logout URL",
+                "description": "'Detects changes to an applications sign out URL.\n  Look for any modifications to a sign out URL. Blank entries or entries to non-existent locations would stop a user from terminating a session.\n  Ref: https://docs.microsoft.com/azure/active-directory/fundamentals/security-operations-applications#logout-url-modified-or-removed'\n",
+                "severity": "Low",
+                "enabled": true,
+                "query": "AuditLogs\n  | where Category =~ \"ApplicationManagement\"\n  | where OperationName has_any (\"Update Application\", \"Update Service principal\")\n  | extend appName = tostring(parse_json(tostring(InitiatedBy.app)).displayName)\n  | extend UPN = tostring(parse_json(tostring(InitiatedBy.user)).userPrincipalName)\n  | extend UpdatedBy = iif(isnotempty(appName), appName, UPN)\n  | extend mod_props = TargetResources[0].modifiedProperties\n  | extend AppName = tostring(TargetResources[0].displayName)\n  | mv-expand mod_props\n  | extend Action = tostring(mod_props.displayName)\n  | where Action contains \"Url\"\n  | extend OldURL = tostring(mod_props.oldValue)\n  | extend NewURL = tostring(mod_props.newValue)\n  | project-reorder TimeGenerated, OperationName, Action, AppName, OldURL, NewURL, UpdatedBy\n",
+                "queryFrequency": "P1D",
+                "queryPeriod": "P1D",
+                "triggerOperator": "GreaterThan",
+                "triggerThreshold": 0,
+                "suppressionDuration": "PT1H",
+                "suppressionEnabled": false,
+                "tactics": [],
+                "techniques": [],
+                "alertRuleTemplateName": null,
+                "incidentConfiguration": {
+                    "createIncident": true,
+                    "groupingConfiguration": {
+                        "enabled": false,
+                        "reopenClosedIncident": false,
+                        "lookbackDuration": "PT5M",
+                        "matchingMethod": "AllEntities",
+                        "groupByEntities": [],
+                        "groupByAlertDetails": null,
+                        "groupByCustomDetails": null
+                    }
+                },
+                "eventGroupingSettings": null,
+                "alertDetailsOverride": null,
+                "customDetails": null,
+                "entityMappings": null,
+                "sentinelEntitiesMappings": null
+            }
+        },
+        {
+            "id": "[concat(resourceId('Microsoft.OperationalInsights/workspaces/providers', parameters('workspace'), 'Microsoft.SecurityInsights'),'/alertRules/639d9deb-e5ef-43f5-aa01-7e189e94a91f')]",
+            "name": "[concat(parameters('workspace'),'/Microsoft.SecurityInsights/639d9deb-e5ef-43f5-aa01-7e189e94a91f')]",
+            "type": "Microsoft.OperationalInsights/workspaces/providers/alertRules",
+            "kind": "Scheduled",
+            "apiVersion": "2022-09-01-preview",
+            "properties": {
+                "displayName": "User account created without expected attributes defined",
+                "description": "'This query looks for accounts being created that do not have attributes populated that are commonly populated in the tenant.\n  Attackers may attempt to add accounts as a means of establishing persistant access to an environment, looking for anomalies in created accounts may help identify illegitimately created accounts.\n  Created accounts should be investigated to ensure they were legitimated created.\n  Ref: https://docs.microsoft.com/azure/active-directory/fundamentals/security-operations-user-accounts#accounts-not-following-naming-policies'\n",
+                "severity": "Low",
+                "enabled": true,
+                "query": "let threshold = 10;\n  let default_ad_attributes = dynamic([\"LastDirSyncTime\", \"StsRefreshTokensValidFrom\", \"Included Updated Properties\", \"AccountEnabled\", \"Action Client Name\", \"SourceAnchor\"]);\n  AuditLogs\n  | where OperationName =~ \"Add user\"\n  | where Result =~ \"success\"\n  | extend properties = TargetResources[0].modifiedProperties\n  | mv-expand properties\n  | evaluate bag_unpack(properties)\n  | extend displayName = column_ifexists(\"displayName\", \"Unknown Value\")\n  | summarize count() by displayName, TenantId\n  | where displayName !in (default_ad_attributes)\n  | top threshold by count_ desc\n  | summarize make_set(displayName) by TenantId\n  | join kind=inner (AuditLogs\n  | where Result =~ \"success\"\n  | where OperationName =~ \"Add user\"\n  | extend CreatingUserPrincipalName = tostring(parse_json(tostring(InitiatedBy.user)).userPrincipalName)\n  | extend CreatedUserPrincipalName = tostring(TargetResources[0].userPrincipalName)\n  | extend AccountProperties = TargetResources[0].modifiedProperties\n  | mv-expand AccountProperties\n  | extend PropName = tostring(AccountProperties.displayName)) on TenantId\n  | summarize makeset(PropName) by TimeGenerated, CorrelationId, CreatedUserPrincipalName, CreatingUserPrincipalName, tostring(set_displayName)\n  | extend missing_props = set_difference(todynamic(set_displayName), set_PropName)\n  | where array_length(missing_props) > 0\n  | join kind=innerunique (AuditLogs\n  | where Result =~ \"success\"\n  | where OperationName =~ \"Add user\"\n  | extend CreatedUserPrincipalName = tostring(TargetResources[0].userPrincipalName)) on CorrelationId, CreatedUserPrincipalName\n  | extend ExpectedProperties = set_displayName\n  | project-away set_displayName, set_PropName\n",
+                "queryFrequency": "P1D",
+                "queryPeriod": "P1D",
+                "triggerOperator": "GreaterThan",
+                "triggerThreshold": 0,
+                "suppressionDuration": "PT1H",
+                "suppressionEnabled": false,
+                "tactics": [],
+                "techniques": [],
+                "alertRuleTemplateName": null,
+                "incidentConfiguration": {
+                    "createIncident": true,
+                    "groupingConfiguration": {
+                        "enabled": false,
+                        "reopenClosedIncident": false,
+                        "lookbackDuration": "PT5M",
+                        "matchingMethod": "AllEntities",
+                        "groupByEntities": [],
+                        "groupByAlertDetails": null,
+                        "groupByCustomDetails": null
+                    }
+                },
+                "eventGroupingSettings": null,
+                "alertDetailsOverride": null,
+                "customDetails": null,
+                "entityMappings": null,
+                "sentinelEntitiesMappings": null
+            }
+        },
+        {
+            "id": "[concat(resourceId('Microsoft.OperationalInsights/workspaces/providers', parameters('workspace'), 'Microsoft.SecurityInsights'),'/alertRules/d776d93d-69df-483d-9029-5ba8760ac7e2')]",
+            "name": "[concat(parameters('workspace'),'/Microsoft.SecurityInsights/d776d93d-69df-483d-9029-5ba8760ac7e2')]",
+            "type": "Microsoft.OperationalInsights/workspaces/providers/alertRules",
+            "kind": "Scheduled",
+            "apiVersion": "2022-09-01-preview",
+            "properties": {
+                "displayName": "User Added to Admin Role",
+                "description": "'Detects a user being added to a new privileged role. Monitor these additions to ensure the users are made eligible for these roles are intended to have these levels of access.\n  Ref: https://docs.microsoft.com/azure/active-directory/fundamentals/security-operations-privileged-accounts#changes-to-privileged-accounts'\n",
+                "severity": "Low",
+                "enabled": true,
+                "query": "AuditLogs\n  | where OperationName in (\"Add eligible member (permanent)\", \"Add eligible member (eligible)\")\n  | extend Role = tostring(TargetResources[0].displayName)\n  | where Role contains \"admin\"\n  | extend AddedBy = tostring(parse_json(tostring(InitiatedBy.user)).userPrincipalName)\n  | extend AddedUser = tostring(TargetResources[2].userPrincipalName)\n  | project-reorder TimeGenerated, AddedUser, Role, AddedBy\n",
+                "queryFrequency": "P1D",
+                "queryPeriod": "P1D",
+                "triggerOperator": "GreaterThan",
+                "triggerThreshold": 0,
+                "suppressionDuration": "PT1H",
+                "suppressionEnabled": false,
+                "tactics": [],
+                "techniques": [],
+                "alertRuleTemplateName": null,
+                "incidentConfiguration": {
+                    "createIncident": true,
+                    "groupingConfiguration": {
+                        "enabled": false,
+                        "reopenClosedIncident": false,
+                        "lookbackDuration": "PT5M",
+                        "matchingMethod": "AllEntities",
+                        "groupByEntities": [],
+                        "groupByAlertDetails": null,
+                        "groupByCustomDetails": null
+                    }
+                },
+                "eventGroupingSettings": null,
+                "alertDetailsOverride": null,
+                "customDetails": null,
+                "entityMappings": null,
+                "sentinelEntitiesMappings": null
+            }
+        }
+    ]
+}
