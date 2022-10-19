@@ -1,0 +1,1 @@
+New-AzSentinelAlertRuleFromGitHub -resourceGroupName "sentinel" -workspaceName "test-sentinel" -gitHubRawUrl "https://github.com/Azure/Azure-Sentinel/tree/master/Detections/SigninLogs" -isGitHubDirectoryUrl $true
